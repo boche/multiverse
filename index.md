@@ -14,7 +14,7 @@ An asynchronous RL framework was proposed: asynchronous training of reinforcemen
 
 Later on, a hybrid CPU/GPU version of the Asynchronous Advantage ActorCritic (A3C) algorithm was proposed, it added a system of queues to batch data - to obtain higher learning throughput on a GPU, which leads to a reduction in traning time without losing any performance. However, the computation power of the system is still not fully utilized. Especially for the CPU, there is significant latency overhead spent accumulating the batch and retrieving the prediction result, so it remains idle most of time.
 
-We decide to enable running multiple episodes on each thread, switch between different episodes during  
+We plan to enable running multiple episodes on each thread, and switch between different episodes during waiting for the prediction results. By doing this, we could increase the throughtput of CPU and hide the latency for each interaction. Also, we will investigate different balancing policy for the batch queue, in order to get higher GPU utilization.
 
 ## Challenge
 Potential challenges include:
@@ -34,16 +34,13 @@ Our project is mainly based on two papers, A3C[1] and GA3C[2]. The code of GA3C 
 Emulators only run on CPUs and GPU is needed to speedup the computation of neural network. We will use TensorFlow for the project because it saves us from the burden of neural network related tasks, and helps us to focus on the parallizing part. Moreover, the open source implementation of GA3C also used TensorFlow for neural network computation, it would be convenient to compare the performance by adopting same neural network implementation.
 
 # Schedule
-* 4.10 - 4.16
-Build up the baseline from the GA3C's implementation.
-* 4.17 - 4.23
-Implement
-* 4.24 - 4.30
-* 5.01 - 5.07
-* 5.08 - 5.12
-by week, one item per week
-
+* 4.10 - 4.16 Build up the baseline from GA3C's implementation;
+* 4.17 - 4.23 Implement first version that compiles and runs, no optimization trick is added this stage;
+* 4.24 - 4.30 Add optimization tricks such as work balancing, queue scheduling to the implementation;
+* 5.01 - 5.07 Experiment and identify the bottlenecks, and further optimize if possible;
+* 5.08 - 5.12 Wrap up the project and write report;
 
 ## References
 [1] Mnih, Volodymyr, et al. "Asynchronous methods for deep reinforcement learning." International Conference on Machine Learning. 2016.
 [2] Babaeizadeh, Mohammad, et al. "GA3C: GPU-based A3C for Deep Reinforcement Learning." arXiv preprint arXiv:1611.06256 (2016).
+
