@@ -1,6 +1,15 @@
 # Multiverse Reinforcement Learning
 by Bo Chen, Bowen Deng
 
+# Checkpoint
+Apr 25, 2017
+![test](images/a3c-score.png)
+![test](images/a3c-score.pdf)
+
+-----
+# Proposal
+Apr 10, 2017
+
 
 ## Summary
 In this project, we plan to parallize reinforcement learning. We will use multiple CPUs to interact with multiple environments (multiverse) and one GPU to speed up the computation of neural network.
