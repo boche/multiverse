@@ -18,25 +18,34 @@ Regarding the learning curve, we show the learning curve for both A3C and GA3C b
 ![a3c-score](images/a3c-score.png)
 ![ga3c-score](images/ga3c-score.png)
 
+We inspected the size of different work queues during training. An ideal scheduling would keep the size of queue stable around some non-zero value. If the queue is always empty, it means that workers don't get enough workload to do. If the queue is always growing, it means that clients yield too much workload beyond the workers' capability. 
+
+GA3C introduced a random scheduling policy, it randomly allocates a new worker/client or deletes an existing worker/client periodically, then compares the throughput before and after the tuning. If the throughput goes bad, it will rollback to previous setting. However, we noticed that such scheduling policy is not very effective. As we saw in the plots below:
+
+![pre_q_size](images/pre_q_size.png)
+![tra_q_size](images/tra_q_size.png)
+
+The size of prediction queue and training queue oscillates from time to time, indicating the random search policy can unnecessarily disturb the stability of the throughput.
+
 ## Updated Schedule
 After reading and analyzing the performance of the code, we propose the following improvements:
 
-1. Improve the dynamic scheduling: Currently the the scheduling is based on annealing process, it randomly perturbs the number of agents, predictors, and trainers every minute, and accepts the new configuration if it leads to a better performance. We plan to try either rule based scheduling or heuristic search, rather than random search;
+1. Improve the dynamic scheduling: Currently the scheduling is based on annealing process, it randomly perturbs the number of agents, predictors, and trainers every minute, and accepts the new configuration if it leads to a better performance. We plan to try both rule based scheduling and heuristic search, rather than random search;
 2. Latency hiding on the CPU (agent) side: Now once a request is sent from the CPU to GPU, the agent just blocks and waits for the request to complete. This results in low utilization of CPU resources and low data feeding rate to GPU. A better way is to let each thread has its own emulation environment pool, and switch emulation enviroment when one stalls.
 3. Replay memory for GPU: the idea of replay memory is to keep GPU busy when CPU fails to generate enough data for GPU to consume at some time. Keeping GPU busy and learning from replay memory helps the algorithm to converge faster.
 
-Our new schedule is based on the improvements:
+Our new schedule is based on the proposed improvements:
 
 - [x] 4.10 - 4.16 Build up the baseline from GA3C's implementation;
 - [x] 4.17 - 4.23 Implement first version that compiles and runs, no optimization trick is added this stage;
 - [ ] by April 30, we will implement proposal 1;
 - [ ] by May 7, we will implement proposal 2 and 3;
-- [ ] in the last week, we will analyze the performance and summarizing the project;
+- [ ] in the last week, we will analyze the performance and summarize the project;
 
 ## Goals and deliverables
 Our primary goal is to still outperform GA3C in speeding up A3C. We believe this is achievable based on the above analysis. 
 
-The deliverable will still be trained agents playing games, comparision between learning curves and PPS.
+The deliverable will still be trained agents playing games, comparison between learning curves and PPS.
 
 ## Issue
 
