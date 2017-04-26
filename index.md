@@ -6,12 +6,12 @@ by Bo Chen, Bowen Deng
 Apr 25, 2017
 
 ## Progress
-By checkpoint, we have succeeded to run two baselines of the project:
+By checkpoint, we have succeeded to run two baselines of the project using public repository:
 
 * A3C[1]: [https://github.com/dennybritz/reinforcement-learning](https://github.com/dennybritz/reinforcement-learning)
 * GA3C[2]: [https://github.com/NVlabs/GA3C](https://github.com/NVlabs/GA3C)
 
-A few changes are made to the code to make the two methods directly compatible. In short, GA3C is the GPU speed up version of A3C. The key metric to evaluate the perfomance is PPS, predictions per second. This metric evaluates the speed at which the agent explores the new environment, it can be roughly understood as new frames seen per second, thus a higher metric is better. When both approach use 16 threads for agents, GA3C's PPS is 448, A3C's PPS is 155, so a speedup o 448 / 155 = 2.89x is achieved.
+A few changes are made to the code to make the two methods directly compatible. In short, GA3C is the GPU speed up version of A3C. The key metric to evaluate the perfomance is PPS, predictions per second. This metric evaluates the speed at which the agent explores the new environment, it can be roughly understood as new frames seen per second, thus a higher metric is better. When both approaches use 16 threads for agents, GA3C's PPS is 448, A3C's PPS is 155, so a speedup of 448 / 155 = 2.89x is achieved.
 
 Regarding the learning curve, we show the learning curve for both A3C and GA3C below. The curves are not directly comparable here: GA3C uses up to 57 threads for agents, because of its dynamic scheduling; while A3C keeps using 16 threads. Nevertheless, we see A3C doesn't converge after 80000 seconds, while GA3C converges in roughly 20000 seconds. So GA3C does speed up A3C because of the utilization of GPU.
 
