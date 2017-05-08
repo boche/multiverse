@@ -47,6 +47,8 @@ class Config:
     # If the dynamic configuration is on, these are the initial values.
     # Number of Agents
     AGENTS = 16 
+    # concurrent episodes of agents
+    CONCURRENT_EPISODES = 4
     # Number of Predictors
     PREDICTORS = 2
     # Number of Trainers

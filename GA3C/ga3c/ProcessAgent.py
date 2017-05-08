@@ -28,7 +28,7 @@ from datetime import datetime
 from multiprocessing import Process, Queue, Value
 
 import numpy as np
-import time
+import time, sys
 
 from Config import Config
 from Environment import Environment
@@ -43,14 +43,19 @@ class ProcessAgent(Process):
         self.prediction_q = prediction_q
         self.training_q = training_q
         self.episode_log_q = episode_log_q
+        self.concurrent_episodes = Config.CONCURRENT_EPISODES
 
-        self.env = Environment()
-        self.num_actions = self.env.get_num_actions()
+        self.envs = [Environment() for i in range(self.concurrent_episodes)]
+        self.reward_sums = [0 for i in range(self.concurrent_episodes)]
+        self.time_counts = [0 for i in range(self.concurrent_episodes)]
+        self.experiences_list = [[] for i in range(self.concurrent_episodes)]
+        self.total_rewards = [0 for i in range(self.concurrent_episodes)]
+        self.total_lengths = [0 for i in range(self.concurrent_episodes)]
+        self.num_actions = self.envs[0].get_num_actions()
         self.actions = np.arange(self.num_actions)
 
         self.discount_factor = Config.DISCOUNT
-        # one frame at a time
-        self.wait_q = Queue(maxsize=1)
+        self.wait_q = Queue(maxsize=self.concurrent_episodes)
         self.exit_flag = Value('i', 0)
 
     @staticmethod
@@ -68,13 +73,6 @@ class ProcessAgent(Process):
         r_ = np.array([exp.reward for exp in experiences])
         return x_, r_, a_
 
-    def predict(self, state):
-        # put the state in the prediction q
-        self.prediction_q.put((self.id, state))
-        # wait for the prediction to come back
-        p, v = self.wait_q.get()
-        return p, v
-
     def select_action(self, prediction):
         if Config.PLAY_MODE:
             action = np.argmax(prediction)
@@ -82,52 +80,69 @@ class ProcessAgent(Process):
             action = np.random.choice(self.actions, p=prediction)
         return action
 
-    def run_episode(self):
-        self.env.reset()
-        done = False
-        experiences = []
+    def reset_episode(self, idx):
+        env = self.envs[idx]
+        self.reward_sums[idx] = 0
+        self.experiences_list[idx] = []
+        self.time_counts[idx] = 0
+        self.total_lengths[idx] = 0
+        self.total_rewards[idx] = 0
 
-        time_count = 0
-        reward_sum = 0.0
+        env.reset()
+        while env.current_state is None:
+            env.step(0)
+            continue
 
-        while not done:
-            # very first few frames
-            if self.env.current_state is None:
-                self.env.step(0)  # 0 == NOOP
-                continue
+    def predict_episode(self, idx):
+        env = self.envs[idx]
+        self.prediction_q.put((self.id, idx, env.current_state))
 
-            prediction, value = self.predict(self.env.current_state)
-            action = self.select_action(prediction)
-            reward, done = self.env.step(action)
-            reward_sum += reward
-            exp = Experience(self.env.previous_state, action, prediction, reward, done)
-            experiences.append(exp)
+    def step_episode(self, idx, prediction, value):
+        env = self.envs[idx]
+        experiences = self.experiences_list[idx]
 
-            if done or time_count == Config.TIME_MAX:
-                terminal_reward = 0 if done else value
+        action = self.select_action(prediction)
+        sys.stdout.flush()
+        reward, done = env.step(action)
+        self.reward_sums[idx] += reward
+        exp = Experience(env.previous_state, action, prediction, reward, done)
+        experiences.append(exp)
 
-                updated_exps = ProcessAgent._accumulate_rewards(experiences, self.discount_factor, terminal_reward)
-                x_, r_, a_ = self.convert_data(updated_exps)
-                yield x_, r_, a_, reward_sum
+        if done or self.time_counts[idx] == Config.TIME_MAX:
+            terminal_reward = 0 if done else value
 
-                # reset the tmax count
-                time_count = 0
-                # keep the last experience for the next batch
-                experiences = [experiences[-1]]
-                reward_sum = 0.0
+            updated_exps = ProcessAgent._accumulate_rewards(experiences, self.discount_factor, terminal_reward)
+            x_, r_, a_ = self.convert_data(updated_exps)
+            self.total_rewards[idx] += self.reward_sums[idx]
+            self.total_lengths[idx] += len(r_) + 1
+            self.training_q.put((x_, r_, a_))
 
-            time_count += 1
+            # reset the tmax count
+            self.time_counts[idx] = 0
+            # keep the last experience for the next batch
+            # experiences = [experiences[-1]]
+            self.experiences_list[idx] = [experiences[-1]]
+            self.reward_sums[idx] = 0.0
+
+        self.time_counts[idx] += 1
+        if done:
+            self.episode_log_q.put((datetime.now(), self.total_rewards[idx], self.total_lengths[idx]))
+            self.reset_episode(idx)
+        
 
     def run(self):
         # randomly sleep up to 1 second. helps agents boot smoothly.
         time.sleep(np.random.rand())
         np.random.seed(np.int32(time.time() % 1 * 1000 + self.id * 10))
 
+        for idx in range(self.concurrent_episodes):
+            self.reset_episode(idx)
+            self.predict_episode(idx)
+
         while self.exit_flag.value == 0:
-            total_reward = 0
-            total_length = 0
-            for x_, r_, a_, reward_sum in self.run_episode():
-                total_reward += reward_sum
-                total_length += len(r_) + 1  # +1 for last frame that we drop
-                self.training_q.put((x_, r_, a_))
-            self.episode_log_q.put((datetime.now(), total_reward, total_length))
+            s = time.time()
+            idx, p, v = self.wait_q.get()
+            t1 = time.time() - s 
+            self.step_episode(idx, p, v)
+            self.predict_episode(idx)
+            t2 = time.time() - s 
