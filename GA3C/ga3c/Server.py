@@ -49,9 +49,6 @@ class Server:
         if Config.LOAD_CHECKPOINT:
             self.stats.episode_count.value = self.model.load()
 
-        self.training_step = 0
-        self.frame_counter = 0
-
         self.agents = []
         self.predictors = []
         self.trainers = []
@@ -87,10 +84,8 @@ class Server:
 
     def train_model(self, x_, r_, a_, trainer_id):
         self.model.train(x_, r_, a_, trainer_id)
-        self.training_step += 1
-        self.frame_counter += x_.shape[0]
 
-        self.stats.training_count.value += 1
+        self.stats.training_count.value += x_.shape[0]
         self.dynamic_adjustment.temporal_training_count += 1
 
         if Config.TENSORBOARD and self.stats.training_count.value % Config.TENSORBOARD_UPDATE_FREQUENCY == 0:

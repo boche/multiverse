@@ -22,6 +22,6 @@ pushd /home/bchen5/multiverse/GA3C/ga3c
 # turn on the virtualenv
 source /home/bchen5/tf-gpu/bin/activate
 
-mkdir checkpoints > /dev/null 2>&1
-mkdir logs > /dev/null 2>&1
+#mkdir checkpoints > /dev/null 2>&1
+#mkdir logs > /dev/null 2>&1
 python GA3C.py "$@"

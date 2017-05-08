@@ -120,7 +120,6 @@ class ProcessAgent(Process):
             # reset the tmax count
             self.time_counts[idx] = 0
             # keep the last experience for the next batch
-            # experiences = [experiences[-1]]
             self.experiences_list[idx] = [experiences[-1]]
             self.reward_sums[idx] = 0.0
 
@@ -140,9 +139,6 @@ class ProcessAgent(Process):
             self.predict_episode(idx)
 
         while self.exit_flag.value == 0:
-            s = time.time()
             idx, p, v = self.wait_q.get()
-            t1 = time.time() - s 
             self.step_episode(idx, p, v)
             self.predict_episode(idx)
-            t2 = time.time() - s 
