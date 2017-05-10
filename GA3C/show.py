@@ -6,7 +6,17 @@ def get_value(tag, line, f):
     digit_str = r":\s+([+-]?\d+(.\d+)?)"
     return f(re.search(tag + digit_str, line).group(1))
 
-def myplot(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list, filename):
+def plot_all(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list, filename, nepisode=35000):
+    ts_list = ts_list[:nepisode]
+    score_list = score_list[:nepisode]
+    rscore_list = rscore_list[:nepisode]
+    rpps_list = rpps_list[:nepisode]
+    pps_list = pps_list[:nepisode]
+    tps_list = tps_list[:nepisode]
+    nt_list = nt_list[:nepisode]
+    np_list = np_list[:nepisode]
+    na_list = na_list[:nepisode]
+
     tag = re.search(r"(\d{5,})", filename).group(1)
     plt.clf()
     plt.plot(ts_list, score_list, label = "score")
@@ -14,7 +24,7 @@ def myplot(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_l
     plt.grid()
     plt.xlabel("seconds")
     plt.legend()
-    plt.savefig("score-%s.pdf" % tag)
+    plt.savefig("score-%s.png" % tag)
 
     plt.clf()
     plt.plot(ts_list, rpps_list, label = "smooth pps")
@@ -22,7 +32,7 @@ def myplot(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_l
     plt.plot(ts_list, tps_list, label = "tps")
     plt.legend()
     plt.xlabel("seconds")
-    plt.savefig("rate-%s.pdf" % tag)
+    plt.savefig("rate-%s.png" % tag)
 
     plt.clf()
     plt.plot(ts_list, nt_list, label = "#trainer")
@@ -30,10 +40,24 @@ def myplot(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_l
     plt.plot(ts_list, na_list, label = "#agent")
     plt.legend()
     plt.xlabel("seconds")
-    plt.savefig("schedule-%s.pdf" % tag)
+    plt.savefig("schedule-%s.png" % tag)
 
-def main():
-    filename = sys.argv[1]
+def plot_cmp_score(t1, t2, s1, s2, file1, file2, nepisode = 20000):
+    t1 = t1[:nepisode]
+    t2 = t2[:nepisode]
+    s1 = s1[:nepisode]
+    s2 = s2[:nepisode]
+    tag1 = re.search(r"(\d{5,})", file1).group(1)
+    tag2 = re.search(r"(\d{5,})", file2).group(1)
+    plt.clf()
+    plt.plot(t1, s1, label = tag1)
+    plt.plot(t2, s2, label = tag2)
+    plt.grid()
+    plt.xlabel("seconds")
+    plt.legend()
+    plt.savefig("score-%s-%s.png" % (tag1, tag2))
+
+def get_list(filename):
     ts_list, score_list, rscore_list = [], [], []
     rpps_list, pps_list, tps_list = [], [], []
     nt_list, np_list, na_list = [], [], []
@@ -63,7 +87,19 @@ def main():
                 # print(rpps, pps, tps)
                 # print(nt, np, na)
                 # print(line)
-    myplot(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list, filename)
+    return ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list
+
+def main():
+    if len(sys.argv) == 3:
+        file1 = sys.argv[1]
+        file2 = sys.argv[2]
+        t1, _, s1, _, _, _, _, _, _ = get_list(file1)
+        t2, _, s2, _, _, _, _, _, _ = get_list(file2)
+        plot_cmp_score(t1, t2, s1, s2, file1, file2)
+    elif len(sys.argv) == 2:
+        filename = sys.argv[1]
+        ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list = get_list(filename)
+        plot_all(ts_list, score_list, rscore_list, rpps_list, pps_list, tps_list, nt_list, np_list, na_list, filename)
 
 if __name__ == "__main__":
     main()

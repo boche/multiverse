@@ -138,7 +138,17 @@ class ProcessAgent(Process):
             self.reset_episode(idx)
             self.predict_episode(idx)
 
+        wait_time = 0
+        total_time = 0
+        step = 0
         while self.exit_flag.value == 0:
+            t0 = time.time()
             idx, p, v = self.wait_q.get()
+            wait_time += time.time() - t0
             self.step_episode(idx, p, v)
             self.predict_episode(idx)
+            total_time += time.time() - t0
+            step += 1
+            if step % 100 == 0 and self.id == 0:
+                print("step: %d, wait time: %.4f, total time: %.4f, percent: %.2f%%" 
+                    % (step, wait_time, total_time, wait_time / total_time * 100))

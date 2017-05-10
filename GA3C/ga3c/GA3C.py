@@ -56,6 +56,9 @@ if Config.PLAY_MODE:
     Config.SAVE_MODELS = False
 
 gym.undo_logger_setup()
+attrs = vars(Config)
+for key, value in attrs.items():
+    print(key, value)
 
 # Start main program
 Server().main()

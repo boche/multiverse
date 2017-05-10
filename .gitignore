@@ -3,4 +3,4 @@ tmp*
 slurm*
 log*
 *pyc
-
+checkpoints

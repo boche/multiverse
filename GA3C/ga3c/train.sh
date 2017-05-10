@@ -19,7 +19,9 @@ echo "Device = $CUDA_VISIBLE_DEVICES"
 
 cd /home/bchen2/multiverse/GA3C/ga3c
 
-mkdir checkpoints > /dev/null 2>&1
-mkdir logs > /dev/null 2>&1
+#mkdir checkpoints > /dev/null 2>&1
+#mkdir logs > /dev/null 2>&1
 #python GA3C.py "$@"
-python GA3C.py TRAINING_MIN_BATCH_SIZE=32 DYNAMIC_SETTINGS=False
+#python GA3C.py DYNAMIC_SETTINGS=False CONCURRENT_EPISODES=1
+
+#python GA3C.py DYNAMIC_SETTINGS=False CONCURRENT_EPISODES=4

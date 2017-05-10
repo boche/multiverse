@@ -44,7 +44,6 @@ class ThreadTrainer(Thread):
         while not self.exit_flag:
             batch_size = 0
             while batch_size <= Config.TRAINING_MIN_BATCH_SIZE:
-            # while batch_size <= Config.TRAINING_MIN_BATCH_SIZE and not self.server.training_q.empty():
                 x_, r_, a_ = self.server.training_q.get()
                 if batch_size == 0:
                     x__ = x_; r__ = r_; a__ = a_
@@ -55,5 +54,4 @@ class ThreadTrainer(Thread):
                 batch_size += x_.shape[0]
             
             if Config.TRAIN_MODELS:
-            # if batch_size > 0 and Config.TRAIN_MODELS:
                 self.server.train_model(x__, r__, a__, self.id)
