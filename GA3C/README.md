@@ -70,14 +70,4 @@ If you use this code, please refer to our [ICLR 2017 paper](https://openreview.n
   year={2017}
 }
 ```
-This work was first presented in an oral talk at the [The 1st International Workshop on Efficient Methods for Deep Neural Networks](http://allenai.org/plato/emdnn/papers.html), NIPS Workshop, Barcelona (Spain), Dec. 9, 2016:
-
-```
-@article{babaeizadeh2016ga3c,
-  title={{GA3C:} {GPU}-based {A3C} for Deep Reinforcement Learning}},
-  author={Babaeizadeh, Mohammad and Frosio, Iuri and Tyree, Stephen and Clemons, Jason and Kautz, Jan},
-  journal={NIPS Workshop},
-  biurl={arXiv preprint arXiv:1611.06256},
-  year={2016}
-}
-```
+This work was first presented in an oral talk at the [The 1st International Workshop on Efficient Methods for Deep Neural Networks](http://allenai.org/plato/emdnn/papers.html), NIPS Workshop, Barcelona (Spain), Dec. 9, 2016.
