@@ -1,6 +1,53 @@
 # Multiverse Reinforcement Learning
 by Bo Chen, Bowen Deng
 
+------
+# Final Report (Draft)
+
+## Summary
+
+In this project, we aim to speed up a state-of-the-art reinforcement learning alogithm A3C[1] using GPU. Similar work like GA3C[2] has already been implemented and shows great speedup. Our work is based on GA3C, identify the bottleneck of the system and further speed up the algorithm.
+
+## Overview
+
+In reinfocement learning, the program (agent) learns to interact with environment by first randomly explore the environment and then train itself using the received reward during exploration. Therefore, there are 3 key steps involved:
+
+* interact with the environment: execute the action and receive feedback from environment
+* predict: given the state of the agent, predict which action to explore next. Intially, the model is not well trained, so only does random exploration.
+* train: given (state, action, reward) tuples, the agent train itself to update its policy to act in different states.
+
+Neural network are often used in the prediction and training part. In A3C, multiple CPU threads are used. Each CPU thread interacts with its own episode (environment), predict with its own network and trains its own model. CPU threads asynchronously update the global model after each update to its local model. 
+
+GA3C speeds up A3C by moving the prediction and training computation to GPU, and only use CPU to interact with the environment. So the new workflow is:
+
+1. CPU send prediction request to GPU
+2. GPU receive prediction request and returns predictions (action to be executed)
+3. CPU receives prediction, interact with environment, receives reward, and then send (state, action, reward) tuple to GPU.
+4. GPU receives train request and update the model.
+
+## Technical Challenge
+* We are trying to optimize A3C's performance, but GA3C already does quite good job, so our baselines are very strong and hard to beat.
+* The GA3C architecture ([github](https://github.com/NVlabs/GA3C)) is complex with different request types and heterogeneous computation. Therefore, it's quite challenging to identify the bottleneck of the system. 
+* Speeding up the system may surprisingly slow down the learning process (convergence is affected). So while optimizing the performance, we also need to make sure learning doesn't get slower.
+* In order to merge prediction and training into one computation graph, we need to implement continuation mechanism for batching.
+
+## Preliminary result
+
+The main metric we used to evaluate the system is PPS (prediction per second).
+
+1. We identified the main bottleneck of GA3C is IPC between CPU and GPU. So we changed the system to minimize data transfer and use specialized thread to keep fetching data while GPU does its computation.
+2. Currently CPU process waits a lot after sending predicton request to GPU. We modify the code to enable a single CPU process to interact with multiple episodes (environment), this can hopefully hide the latency of prediction request. 
+3. In A3C, every state will be reused to train the network after getting the reward of the predicted action from the environment. However, in the training stage, the network still need to do one forward pass before back-propagation. Thus, for every state the agent experienced, it has to go through forward-propagation twice: prediction and training. These two computation can be merged together by partialy run the computation graph of training operations to get the probablity of actions, and then feed in the rewards to continue the back-propagation process. By doing this, we could reduce the amount of computation and data transfer.
+
+The first two changes improve the PPS from around 1150 to 1450. This is mainly due to the first modification. The latency hiding doesn't quite work because latency gets longer due to more prediction/train requests. But preliminary result shows exploring multiple episodes leads to a faster convergence. So we may gain some additional speed up due to faster convergence.
+
+The last change alone improves the PPS from about 850 to 1250. (Clarification: PPS here is calculated on a different platform, so it differs from the above numbers.)
+
+## Expected result
+
+* We will merge the third optimization with the first two, and see the overall gain. We are expecting a total speed up in PPS from 1.5x to 2.0x.
+* We will also give the learning curve comparison between our approach and GA3C. More graphs will be plotted to better compare the two systems.
+
 -----
 # Checkpoint
 Apr 25, 2017
