@@ -126,7 +126,7 @@ class Config:
     SAVE_FREQUENCY = 1000
     
     # Print stats every PRINT_STATS_FREQUENCY episodes
-    PRINT_STATS_FREQUENCY = 1
+    PRINT_STATS_FREQUENCY = 10
     # The window to average stats
     STAT_ROLLING_MEAN_WINDOW = 1000
 

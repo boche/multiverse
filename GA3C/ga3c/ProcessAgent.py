@@ -95,7 +95,7 @@ class ProcessAgent(Process):
 
     def predict_episode(self, idx):
         env = self.envs[idx]
-        self.prediction_q.put((self.id, idx, env.current_state))
+        self.prediction_q.put((env.current_state, self.id, idx))
 
     def step_episode(self, idx, prediction, value):
         env = self.envs[idx]
@@ -149,6 +149,7 @@ class ProcessAgent(Process):
             self.predict_episode(idx)
             total_time += time.time() - t0
             step += 1
-            if step % 100 == 0 and self.id == 0:
-                print("step: %d, wait time: %.4f, total time: %.4f, percent: %.2f%%" 
-                    % (step, wait_time, total_time, wait_time / total_time * 100))
+            if step % 1000 == 0 and self.id == 0:
+                print("[Agent %d] wait time: %.4f, total time: %.4f, percent: %.2f%%, predict: %d, train: %d, wait_q: %d"
+                    % (step, wait_time, total_time, wait_time / total_time * 100, 
+                    self.prediction_q.qsize(), self.training_q.qsize(), self.wait_q.qsize()))

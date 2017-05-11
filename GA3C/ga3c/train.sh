@@ -24,4 +24,5 @@ cd /home/bchen2/multiverse/GA3C/ga3c
 #python GA3C.py "$@"
 #python GA3C.py DYNAMIC_SETTINGS=False CONCURRENT_EPISODES=1
 
-#python GA3C.py DYNAMIC_SETTINGS=False CONCURRENT_EPISODES=4
+#python GA3C.py CONCURRENT_EPISODES=4
+

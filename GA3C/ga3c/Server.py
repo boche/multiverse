@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from multiprocessing import Queue
+import queue, collections
 
 import time
 
@@ -36,6 +37,7 @@ from ProcessStats import ProcessStats
 from ThreadDynamicAdjustment import ThreadDynamicAdjustment
 from ThreadPredictor import ThreadPredictor
 from ThreadTrainer import ThreadTrainer
+from ThreadReader import ThreadReader
 
 
 class Server:
@@ -44,6 +46,10 @@ class Server:
 
         self.training_q = Queue(maxsize=Config.MAX_QUEUE_SIZE)
         self.prediction_q = Queue(maxsize=Config.MAX_QUEUE_SIZE)
+        self.local_prediction_q = queue.Queue(maxsize=Config.MAX_QUEUE_SIZE)
+        self.local_training_q = queue.Queue(maxsize=Config.MAX_QUEUE_SIZE)
+        # self.local_prediction_q = collections.deque() 
+        # self.local_training_q = collections.deque()
 
         self.model = NetworkVP(Config.DEVICE, Config.NETWORK_NAME, Environment().get_num_actions())
         if Config.LOAD_CHECKPOINT:
@@ -77,6 +83,10 @@ class Server:
         self.trainers.append(ThreadTrainer(self, len(self.trainers)))
         self.trainers[-1].start()
 
+    def add_reader(self):
+        ThreadReader(self.prediction_q, self.local_prediction_q).start()
+        ThreadReader(self.training_q, self.local_training_q).start()
+
     def remove_trainer(self):
         self.trainers[-1].exit_flag = True
         self.trainers[-1].join()
@@ -104,6 +114,7 @@ class Server:
 
         learning_rate_multiplier = (Config.LEARNING_RATE_END - Config.LEARNING_RATE_START) / Config.ANNEALING_EPISODE_COUNT
         beta_multiplier = (Config.BETA_END - Config.BETA_START) / Config.ANNEALING_EPISODE_COUNT
+        self.add_reader()
 
         while self.stats.episode_count.value < Config.EPISODES:
             step = min(self.stats.episode_count.value, Config.ANNEALING_EPISODE_COUNT - 1)

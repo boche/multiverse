@@ -26,7 +26,7 @@
 
 from threading import Thread
 import numpy as np
-import sys
+import sys, time
 
 from Config import Config
 
@@ -41,10 +41,20 @@ class ThreadTrainer(Thread):
         self.exit_flag = False
 
     def run(self):
+        data_queue = self.server.local_training_q
+        total_time = 0
+        collect_time = 0
+        train_time = 0
+        step = 0
+        acc_batch_size = 0.0
+
         while not self.exit_flag:
+            step += 1
+            s0 = time.time()
+
             batch_size = 0
             while batch_size <= Config.TRAINING_MIN_BATCH_SIZE:
-                x_, r_, a_ = self.server.training_q.get()
+                x_, r_, a_ = data_queue.get() 
                 if batch_size == 0:
                     x__ = x_; r__ = r_; a__ = a_
                 else:
@@ -52,6 +62,19 @@ class ThreadTrainer(Thread):
                     r__ = np.concatenate((r__, r_))
                     a__ = np.concatenate((a__, a_))
                 batch_size += x_.shape[0]
+            s1 = time.time()
             
             if Config.TRAIN_MODELS:
                 self.server.train_model(x__, r__, a__, self.id)
+            s2 = time.time()
+
+            total_time += s2 - s0
+            collect_time += s1 - s0
+            train_time += s2 - s1
+            acc_batch_size += batch_size
+            if self.id == 0 and step % 1000 == 0:
+                print("[train %d] collect: %.1f %.1f%%, train: %.1f %.1f%%, total: %.1f, batch: %d, local_q: %d, remote_q: %d" % 
+                    (step, collect_time, collect_time / total_time * 100, 
+                    train_time, train_time / total_time * 100,
+                    total_time, acc_batch_size / step, self.server.local_training_q.qsize(), self.server.training_q.qsize()))
+                sys.stdout.flush()

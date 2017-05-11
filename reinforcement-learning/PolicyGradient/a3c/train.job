@@ -22,7 +22,7 @@ pushd /home/bchen5/multiverse/reinforcement-learning/PolicyGradient/a3c
 source /home/bchen5/tf-gpu/bin/activate
 
 # run the experiment script
-python train.py --model_dir /home/bchen5/tmp/a3c-test --env SuperMarioAllStarsNoRight-v0 --t_max 5 --eval_every 120 --parallelism 8
+python train.py --model_dir /home/bchen5/tmp/a3c-pong --env PongDeterministic-v0 --t_max 5 --eval_every 120 --parallelism 16 
 
 # turn off the virtualenv
 deactivate

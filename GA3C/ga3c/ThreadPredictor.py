@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from threading import Thread
+import time, sys
 
 import numpy as np
 
@@ -41,6 +42,13 @@ class ThreadPredictor(Thread):
         self.exit_flag = False
 
     def run(self):
+        data_queue = self.server.local_prediction_q
+        total_time = 0
+        collect_time = 0
+        predict_time = 0
+        step = 0
+        acc_batch_size = 0.0
+
         ids = np.zeros(Config.PREDICTION_BATCH_SIZE, dtype=np.uint16)
         episode_ids = np.zeros(Config.PREDICTION_BATCH_SIZE, dtype = np.uint16)
         states = np.zeros(
@@ -48,16 +56,33 @@ class ThreadPredictor(Thread):
             dtype=np.float32)
 
         while not self.exit_flag:
-            ids[0], episode_ids[0], states[0] = self.server.prediction_q.get()
+            step += 1
+            s0 = time.time()
+            size = 0
+            states[0], ids[0], episode_ids[0] = data_queue.get()
 
             size = 1
-            while size < Config.PREDICTION_BATCH_SIZE and not self.server.prediction_q.empty():
-                ids[size], episode_ids[size], states[size] = self.server.prediction_q.get()
+            # while size < Config.PREDICTION_BATCH_SIZE and not data_queue.empty():
+            while size < Config.PREDICTION_BATCH_SIZE:
+                states[size], ids[size], episode_ids[size] = data_queue.get()
                 size += 1
+            s1 = time.time()
 
             batch = states[:size]
             p, v = self.server.model.predict_p_and_v(batch)
+            s2 = time.time()
 
             for i in range(size):
                 if ids[i] < len(self.server.agents):
                     self.server.agents[ids[i]].wait_q.put((episode_ids[i], p[i], v[i]))
+            s3 = time.time()
+            total_time += s3 - s0
+            collect_time += s1 - s0
+            predict_time += s2 - s1
+            acc_batch_size += size
+            if self.id == 0 and step % 1000 == 0:
+                print("[predictor %d] collect: %.1f %.1f%%, predict: %.1f %.1f%%, total: %.1f, batch: %d, local_q: %d, remote_q: %d" % 
+                    (step, collect_time, collect_time / total_time * 100, 
+                    predict_time, predict_time / total_time * 100,
+                    total_time, acc_batch_size / step, self.server.local_prediction_q.qsize(), self.server.prediction_q.qsize()))
+                sys.stdout.flush()
