@@ -48,8 +48,6 @@ class Server:
         self.prediction_q = Queue(maxsize=Config.MAX_QUEUE_SIZE)
         self.local_prediction_q = queue.Queue(maxsize=Config.MAX_QUEUE_SIZE)
         self.local_training_q = queue.Queue(maxsize=Config.MAX_QUEUE_SIZE)
-        # self.local_prediction_q = collections.deque() 
-        # self.local_training_q = collections.deque()
 
         self.model = NetworkVP(Config.DEVICE, Config.NETWORK_NAME, Environment().get_num_actions())
         if Config.LOAD_CHECKPOINT:
@@ -84,8 +82,8 @@ class Server:
         self.trainers[-1].start()
 
     def add_reader(self):
-        # ThreadReader(self.prediction_q, self.local_prediction_q).start()
-        # ThreadReader(self.training_q, self.local_training_q).start()
+        ThreadReader(self.prediction_q, self.local_prediction_q).start()
+        ThreadReader(self.training_q, self.local_training_q).start()
         pass
 
     def remove_trainer(self):
