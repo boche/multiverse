@@ -1,5 +1,6 @@
 from threading import Thread
 import sys, time
+import numpy as np
 
 from Config import Config
 
@@ -17,4 +18,3 @@ class ThreadReader(Thread):
         while not self.exit_flag:
             data = self.remote_q.get()
             self.local_q.put(data)
-            # self.local_q.append(data)

@@ -84,8 +84,9 @@ class Server:
         self.trainers[-1].start()
 
     def add_reader(self):
-        ThreadReader(self.prediction_q, self.local_prediction_q).start()
-        ThreadReader(self.training_q, self.local_training_q).start()
+        # ThreadReader(self.prediction_q, self.local_prediction_q).start()
+        # ThreadReader(self.training_q, self.local_training_q).start()
+        pass
 
     def remove_trainer(self):
         self.trainers[-1].exit_flag = True

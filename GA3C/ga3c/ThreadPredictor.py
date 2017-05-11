@@ -42,7 +42,8 @@ class ThreadPredictor(Thread):
         self.exit_flag = False
 
     def run(self):
-        data_queue = self.server.local_prediction_q
+        # data_queue = self.server.local_prediction_q
+        data_queue = self.server.prediction_q
         total_time = 0
         collect_time = 0
         predict_time = 0
@@ -62,8 +63,8 @@ class ThreadPredictor(Thread):
             states[0], ids[0], episode_ids[0] = data_queue.get()
 
             size = 1
-            # while size < Config.PREDICTION_BATCH_SIZE and not data_queue.empty():
-            while size < Config.PREDICTION_BATCH_SIZE:
+            while size < Config.PREDICTION_BATCH_SIZE and not data_queue.empty():
+            # while size < Config.PREDICTION_BATCH_SIZE:
                 states[size], ids[size], episode_ids[size] = data_queue.get()
                 size += 1
             s1 = time.time()
