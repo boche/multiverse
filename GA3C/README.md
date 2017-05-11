@@ -74,7 +74,7 @@ This work was first presented in an oral talk at the [The 1st International Work
 
 ```
 @article{babaeizadeh2016ga3c,
-  title={{GA3C:} {GPU}-based {A3C} for Deep Reinforcement Learning},
+  title={{GA3C:} {GPU}-based {A3C} for Deep Reinforcement Learning}},
   author={Babaeizadeh, Mohammad and Frosio, Iuri and Tyree, Stephen and Clemons, Jason and Kautz, Jan},
   journal={NIPS Workshop},
   biurl={arXiv preprint arXiv:1611.06256},
