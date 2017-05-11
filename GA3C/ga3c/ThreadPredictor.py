@@ -42,8 +42,10 @@ class ThreadPredictor(Thread):
         self.exit_flag = False
 
     def run(self):
-        data_queue = self.server.local_prediction_q
-        # data_queue = self.server.prediction_q
+        if Config.LOCAL_QUEUE:
+            data_queue = self.server.local_prediction_q
+        else:
+            data_queue = self.server.prediction_q
         total_time = 0
         collect_time = 0
         predict_time = 0

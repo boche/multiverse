@@ -41,8 +41,10 @@ class ThreadTrainer(Thread):
         self.exit_flag = False
 
     def run(self):
-        data_queue = self.server.local_training_q
-        # data_queue = self.server.training_q
+        if Config.LOCAL_QUEUE:
+            data_queue = self.server.local_training_q
+        else:
+            data_queue = self.server.training_q
         total_time = 0
         collect_time = 0
         train_time = 0

@@ -53,12 +53,13 @@ class Config:
     PREDICTORS = 2
     # Number of Trainers
     TRAINERS = 2
+    LOCAL_QUEUE = True
 
     # Device
     DEVICE = 'gpu:0'
 
     # Enable the dynamic adjustment (+ waiting time to start it)
-    DYNAMIC_SETTINGS = True
+    DYNAMIC_SETTINGS = False
     DYNAMIC_SETTINGS_STEP_WAIT = 20
     DYNAMIC_SETTINGS_INITIAL_WAIT = 10
 
@@ -116,12 +117,12 @@ class Config:
     # Log and save
 
     # Enable TensorBoard
-    TENSORBOARD = True
+    TENSORBOARD = False
     # Update TensorBoard every X training steps
     TENSORBOARD_UPDATE_FREQUENCY = 1000
 
     # Enable to save models every SAVE_FREQUENCY episodes
-    SAVE_MODELS = True
+    SAVE_MODELS = False
     # Save every SAVE_FREQUENCY episodes
     SAVE_FREQUENCY = 1000
     

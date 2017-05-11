@@ -24,4 +24,10 @@ source /home/bchen5/tf-gpu/bin/activate
 
 #mkdir checkpoints > /dev/null 2>&1
 #mkdir logs > /dev/null 2>&1
-python GA3C.py "$@"
+#python GA3C.py "$@"
+
+#python GA3C.py CONCURRENT_EPISODES=4 TRAINING_MIN_BATCH_SIZE=8 TRAINERS=4 
+
+#python GA3C.py CONCURRENT_EPISODES=1 TRAINING_MIN_BATCH_SIZE=8 TRAINERS=4 
+
+python GA3C.py CONCURRENT_EPISODES=2 TRAINING_MIN_BATCH_SIZE=8 TRAINERS=4 

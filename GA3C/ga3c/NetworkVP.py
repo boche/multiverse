@@ -70,7 +70,7 @@ class NetworkVP:
             # tf.float32, [None, self.img_height, self.img_width, self.img_channels], name='X')
         self.x = tf.placeholder(
             tf.uint8, [None, self.img_height, self.img_width, self.img_channels], name='X')
-        self.x = tf.cast(self.x, tf.float32) / 128.0 - 1.0
+        self.xfloat = tf.cast(self.x, tf.float32) / 128.0 - 1.0
         self.y_r = tf.placeholder(tf.float32, [None], name='Yr')
 
         self.var_beta = tf.placeholder(tf.float32, name='beta', shape=[])
@@ -79,7 +79,7 @@ class NetworkVP:
         self.global_step = tf.Variable(0, trainable=False, name='step')
 
         # As implemented in A3C paper
-        self.n1 = self.conv2d_layer(self.x, 8, 16, 'conv11', strides=[1, 4, 4, 1])
+        self.n1 = self.conv2d_layer(self.xfloat, 8, 16, 'conv11', strides=[1, 4, 4, 1])
         self.n2 = self.conv2d_layer(self.n1, 4, 32, 'conv12', strides=[1, 2, 2, 1])
         self.action_index = tf.placeholder(tf.float32, [None, self.num_actions])
         _input = self.n2
