@@ -35,7 +35,7 @@ We first notice that GPU spends more time collecting data from CPU than doing co
 
 1. use separate threads to read data from CPU, especially when GPU does its computation. This hides some latency of data reading.
 2. The second improvement is to move image float conversion,
-```image = image.astype(np.float32) / 128.0 - 1.0```, from CPU to GPU. This allows state transfered from CPU to GPU in uint8 array, rather than float32 array. This improvement saves 75% of data transfer. To clarify, this is not a compression of the states, we are only deferring float conversion to GPU calulation.
+```image = image.astype(np.float32) / 128.0 - 1.0```, from CPU to GPU. This allows state to be transfered from CPU to GPU in uint8 array, rather than float32 array. This improvement saves 75% of data transfer. To clarify, this is not a compression of the states, we are only deferring float conversion to GPU calculation.
 
 ### Hide Latency
 We also noticed that CPU process waits a lot after sending prediction request to GPU. The typical amount of waiting percent in CPU process is 60%. To hide this latency, we let each CPU process simulate multiple agents. When the first agent stalls because of waiting for prediction reply from GPU, the process can switch to the second agent and keeps interacting with the environment.
@@ -45,19 +45,21 @@ Due to the specific nature of GA3C, each state is passed from CPU to GPU and goe
 
 ## Result
 
-In this section, we compare our implementation Multiverse with GA3C's implementation. We want to emphasize that GA3C is an ICLR 2017 conference paper specializing in speeding up the learning algorithm of A3C[1]. So we are comparing with the state-of-the-art approach, so our baseline is quite strong.
+In this section, we compare our implementation Multiverse with GA3C's implementation. We want to emphasize that GA3C is an ICLR 2017 conference paper specializing in speeding up the learning algorithm of A3C[1]. So we are comparing with the state-of-the-art approach, and our baseline is quite strong.
 
 The main metric we used to evaluate the system is PPS, prediction per second by GPU.
 
 ### IO Bound
 
 GA3C has a pps of 1164. After mitigating the IO issue, we improved the pps to 1343, so it's a 15% improvement. In this experiment, we kept the number of CPU processes to 20 for fair comparison.
+
 ![io](images/io.png)
+
 Note the speed-up doesn't affect learning convergence. Here we plot the learning curve of both systems, x-axis is training time in seconds, y-axis is training rewards received during training, higher is better. We see our approach (green) converges much faster than GA3C (blue).
 
 ### Hide Latency
 
-Here we evaluate the effect of multiple agents per CPU process. We compare GA3C with 2 and 4 agents per process. From the table below, we see as we increase number of agents per process, pps gets higher and the percent of CPU process waiting time decreases. With 4 agents/process, our system is able to achieve a 53% speed-up over GA3C. The speed-up is partly due to less data transfer as we discussed in IO bound. 
+Here we evaluate the effect of multiple agents per CPU process. We compare GA3C with 2 and 4 agents per process. From the table below, we see as we increase the number of agents per process, pps gets higher and the percent of CPU process waiting time decreases. With 4 agents/process, our system is able to achieve a 53% speed-up over GA3C. The speed-up is partly due to less data transfer as we discussed in IO bound. 
 
 |          | PPS  | CPU process waiting percentage |
 |----------|------|--------------------------------|
@@ -66,9 +68,10 @@ Here we evaluate the effect of multiple agents per CPU process. We compare GA3C 
 | 4 Agents | 1781 | 38.6%                          |
 
 In GA3C, we use 20 CPU processes, but for 2 and 4 agents version, we use 15 CPU processes. The number of CPU processes is different because we are comparing the best configuration of both systems.
+
 ![hide](images/hide.png)
 
-We also post the learning curve of both systems here. Our system (red, green) gets even faster, much faster than the baseline GA3C (blue).
+We also plot the learning curve of both systems here. Our system (red, green) gets even faster, much faster than the baseline GA3C (blue).
 
 ### Continuation
 
