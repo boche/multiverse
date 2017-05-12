@@ -114,7 +114,7 @@ class ProcessAgent(Process):
             updated_exps = ProcessAgent._accumulate_rewards(experiences, self.discount_factor, terminal_reward)
             x_, r_, a_ = self.convert_data(updated_exps)
             self.total_rewards[idx] += self.reward_sums[idx]
-            self.total_lengths[idx] += len(r_) + 1
+            self.total_lengths[idx] += len(r_)# + 1
             self.training_q.put((x_, r_, a_))
 
             # reset the tmax count

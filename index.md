@@ -2,51 +2,83 @@
 by Bo Chen, Bowen Deng
 
 ------
-# Final Report (Draft)
+# Final Report
 
 ## Summary
 
-In this project, we aim to speed up a state-of-the-art reinforcement learning alogithm A3C[1] using GPU. Similar work like GA3C[2] has already been implemented and shows great speedup. Our work is based on GA3C, identify the bottleneck of the system and further speed up the algorithm.
+In this project, we speed up a state-of-the-art reinforcement learning alogithm GA3C[2]. Our implementation Multiverse achieved a 53 % speed-up over GA3C on clusters with 1 GPU (TITAN X Pascal) and 16 CPU cores (Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz). 
 
-## Overview
+## Background
 
-In reinfocement learning, the program (agent) learns to interact with environment by first randomly explore the environment and then train itself using the received reward during exploration. Therefore, there are 3 key steps involved:
+In reinfocement learning, there are two roles, agent and environment. An agent observes state, decides action to take given state, and executes action. The environment takes action, returns reward and generates the next state. Therefore, there are 3 key steps involved:
 
-* interact with the environment: execute the action and receive feedback from environment
-* predict: given the state of the agent, predict which action to explore next. Intially, the model is not well trained, so only does random exploration.
-* train: given (state, action, reward) tuples, the agent train itself to update its policy to act in different states.
+![Reinfocement Learning](images/reinforce.png)
 
-Neural network are often used in the prediction and training part. In A3C, multiple CPU threads are used. Each CPU thread interacts with its own episode (environment), predict with its own network and trains its own model. CPU threads asynchronously update the global model after each update to its local model. 
+1. interact with the environment: execute the action and receive reward from environment;
+2. predict: given the state of the agent, predict which action to explore next;
+3. train: given (state, action, reward) tuples, the agent trains itself to update its policy to act in different states;
 
-GA3C speeds up A3C by moving the prediction and training computation to GPU, and only use CPU to interact with the environment. So the new workflow is:
+Neural network are often used in the prediction and training part. In GA3C, multiple CPU processes are used. Each process simulates an independent agent, interacting with its own environment. The main workflow of GA3C is:
 
-1. CPU send prediction request to GPU
-2. GPU receive prediction request and returns predictions (action to be executed)
-3. CPU receives prediction, interact with environment, receives reward, and then send (state, action, reward) tuple to GPU.
-4. GPU receives train request and update the model.
+1. CPU sends prediction request to GPU;
+2. GPU receives prediction request and returns predictions (action to be executed);
+3. CPU receives prediction, interacts with environment, receives reward, and then send (state, action, reward) tuple to GPU;
+4. GPU receives train request and update the model;
 
-## Technical Challenge
-* We are trying to optimize A3C's performance, but GA3C already does quite good job, so our baselines are very strong and hard to beat.
-* The GA3C architecture ([github](https://github.com/NVlabs/GA3C)) is complex with different request types and heterogeneous computation. Therefore, it's quite challenging to identify the bottleneck of the system. 
-* Speeding up the system may surprisingly slow down the learning process (convergence is affected). So while optimizing the performance, we also need to make sure learning doesn't get slower.
-* In order to merge prediction and training into one computation graph, we need to implement continuation mechanism for batching.
+![GA3C](images/ga3c.png)
 
-## Preliminary result
+## Approach
+Our improvement is based on the open source implementation of GA3C [https://github.com/NVlabs/GA3C](https://github.com/NVlabs/GA3C). We use OpenAI Gym for game emulation and the hardware system includes 1 GPU (TITAN X Pascal) and 16 CPU cores (Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz).
 
-The main metric we used to evaluate the system is PPS (prediction per second).
+### IO Bound
+We first notice that GPU spends more time collecting data from CPU than doing computation, so the system is clearly IO bound. This is because states sent from CPU to GPU are large size images with dimesnion of 84 x 84 x 4. To mitigate this issue, we propose two methods:
 
-1. We identified the main bottleneck of GA3C is IPC between CPU and GPU. So we changed the system to minimize data transfer and use specialized thread to keep fetching data while GPU does its computation.
-2. Currently CPU process waits a lot after sending predicton request to GPU. We modify the code to enable a single CPU process to interact with multiple episodes (environment), this can hopefully hide the latency of prediction request. 
-3. In A3C, every state will be reused to train the network after getting the reward of the predicted action from the environment. However, in the training stage, the network still need to do one forward pass before back-propagation. Thus, for every state the agent experienced, it has to go through forward-propagation twice: prediction and training. These two computation can be merged together by partialy run the computation graph of training operations to get the probablity of actions, and then feed in the rewards to continue the back-propagation process. By doing this, we could reduce the amount of computation and data transfer.
+1. use separate threads to read data from CPU, especially when GPU does its computation. This hides some latency of data reading.
+2. The second improvement is to move image float conversion,
+```image = image.astype(np.float32) / 128.0 - 1.0```, from CPU to GPU. This allows state transfered from CPU to GPU in uint8 array, rather than float32 array. This improvement saves 75% of data transfer. To clarify, this is not a compression of the states, we are only deferring float conversion to GPU calulation.
 
-The first two changes improve the PPS from around 1150 to 1450. This is mainly due to the first modification. The latency hiding doesn't quite work because latency gets longer due to more prediction/train requests. But preliminary result shows exploring multiple episodes leads to a faster convergence. So we may gain some additional speed up due to faster convergence.
+### Hide Latency
+We also noticed that CPU process waits a lot after sending prediction request to GPU. The typical amount of waiting percent in CPU process is 60%. To hide this latency, we let each CPU process simulate multiple agents. When the first agent stalls because of waiting for prediction reply from GPU, the process can switch to the second agent and keeps interacting with the environment.
 
-The last change alone improves the PPS from about 850 to 1250. (Clarification: PPS here is calculated on a different platform, so it differs from the above numbers.)
+### Continuation
+Due to the specific nature of GA3C, each state is passed from CPU to GPU and goes through the forward pass twice, once in prediction and once in training. To avoid the unnecessary data transfer and computation, we implemented the continuation mechanism. To be more specific, we used partial_run API of TensorFlow to keep the intermediate result in GPU.
 
-## Expected result
+## Result
 
-* We will merge the third optimization with the first two, and see the overall gain. We are expecting a total speed up in PPS from 1.5x to 2.0x.
-* We will also give the learning curve comparison between our approach and GA3C. More graphs will be plotted to better compare the two systems.
+In this section, we compare our implementation Multiverse with GA3C's implementation. We want to emphasize that GA3C is an ICLR 2017 conference paper specializing in speeding up the learning algorithm of A3C[1]. So we are comparing with the state-of-the-art approach, so our baseline is quite strong.
+
+The main metric we used to evaluate the system is PPS, prediction per second by GPU.
+
+### IO Bound
+
+GA3C has a pps of 1164. After mitigating the IO issue, we improved the pps to 1343, so it's a 15% improvement. In this experiment, we kept the number of CPU processes to 20 for fair comparison.
+![io](images/io.png)
+Note the speed-up doesn't affect learning convergence. Here we plot the learning curve of both systems, x-axis is training time in seconds, y-axis is training rewards received during training, higher is better. We see our approach (green) converges much faster than GA3C (blue).
+
+### Hide Latency
+
+Here we evaluate the effect of multiple agents per CPU process. We compare GA3C with 2 and 4 agents per process. From the table below, we see as we increase number of agents per process, pps gets higher and the percent of CPU process waiting time decreases. With 4 agents/process, our system is able to achieve a 53% speed-up over GA3C. The speed-up is partly due to less data transfer as we discussed in IO bound. 
+
+|          | PPS  | CPU process waiting percentage |
+|----------|------|--------------------------------|
+| GA3C     | 1164 | 61.3%                          |
+| 2 Agents | 1562 | 46.3%                          |
+| 4 Agents | 1781 | 38.6%                          |
+
+In GA3C, we use 20 CPU processes, but for 2 and 4 agents version, we use 15 CPU processes. The number of CPU processes is different because we are comparing the best configuration of both systems.
+![hide](images/hide.png)
+
+We also post the learning curve of both systems here. Our system (red, green) gets even faster, much faster than the baseline GA3C (blue).
+
+### Continuation
+
+Implementing continuation mechanism alone brings in 38% of pps improvement comparing to GA3C. We haven't combined continuation with the first two optimizations because currently we are still facing some convergence issue with continuation. 
+
+## References
+[1] Mnih, Volodymyr, et al. "Asynchronous methods for deep reinforcement learning." International Conference on Machine Learning. 2016.
+
+[2] Babaeizadeh, Mohammad, et al. "GA3C: GPU-based A3C for Deep Reinforcement Learning." arXiv preprint arXiv:1611.06256 (2016).
+
 
 -----
 # Checkpoint
