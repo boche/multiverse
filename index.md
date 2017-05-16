@@ -82,6 +82,8 @@ Implementing continuation mechanism alone brings in 38% of pps improvement compa
 
 [2] Babaeizadeh, Mohammad, et al. "GA3C: GPU-based A3C for Deep Reinforcement Learning." arXiv preprint arXiv:1611.06256 (2016).
 
+## Work Split:
+Equal work was performed by both project members.
 
 -----
 # Checkpoint
